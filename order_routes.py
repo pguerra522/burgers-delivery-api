@@ -206,3 +206,75 @@ async def get_specific_order(id:int,Authorize:AuthJWT=Depends()):
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
         detail="No order with such id"
     )
+
+
+@order_router.put('/order/update/{id}/')
+async def update_order(id:int,order:OrderModel,Authorize:AuthJWT=Depends()):
+    """
+        ## Updating an order
+        This udates an order and requires the following fields
+        - quantity : integer
+        - combo_size: str
+
+    """
+
+    try:
+        Authorize.jwt_required()
+
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Token")
+
+    order_to_update=session.query(Order).filter(Order.id==id).first()
+
+    order_to_update.quantity=order.quantity
+    order_to_update.combo_size=order.combo_size
+
+    session.commit()
+
+
+    response={
+                "id":order_to_update.id,
+                "quantity":order_to_update.quantity,
+                "combo_size":order_to_update.combo_size,
+                "order_status":order_to_update.order_status,
+            }
+
+    return jsonable_encoder(order_to_update)
+
+
+
+@order_router.patch('/order/update/{id}/')
+async def update_order_status(id:int,
+        order:OrderStatusModel,
+        Authorize:AuthJWT=Depends()):
+
+
+    """
+        ## Update an order's status
+        This is for updating an order's status and requires ` order_status ` in str format
+    """
+    try:
+        Authorize.jwt_required()
+
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Token")
+
+    username=Authorize.get_jwt_subject()
+
+    current_user=session.query(User).filter(User.username==username).first()
+
+    if current_user.is_staff:
+        order_to_update=session.query(Order).filter(Order.id==id).first()
+
+        order_to_update.order_status=order.order_status
+
+        session.commit()
+
+        response={
+                "id":order_to_update.id,
+                "quantity":order_to_update.quantity,
+                "combo_size":order_to_update.combo_size,
+                "order_status":order_to_update.order_status,
+            }
+
+        return jsonable_encoder(response)
